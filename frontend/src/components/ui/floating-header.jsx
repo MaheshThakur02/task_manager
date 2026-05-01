@@ -1,12 +1,25 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Grid2x2PlusIcon, MenuIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Sheet, SheetContent, SheetFooter } from "@/components/ui/sheet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function FloatingHeader({ isAuthenticated, user, onLogout }) {
   const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
 
   const links = isAuthenticated
     ? [
@@ -27,7 +40,7 @@ export function FloatingHeader({ isAuthenticated, user, onLogout }) {
         "backdrop-blur-lg"
       )}
     >
-      <nav className="mx-auto flex items-center justify-between p-1.5">
+      <nav className="mx-auto flex items-center justify-between gap-2 p-1.5">
         <Link to={isAuthenticated ? "/" : "/login"} className="brand-mark hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 duration-100">
           <Grid2x2PlusIcon className="size-5" />
           <p className="font-mono text-base font-bold">TaskForge</p>
@@ -43,35 +56,52 @@ export function FloatingHeader({ isAuthenticated, user, onLogout }) {
 
         <div className="flex items-center gap-2">
           {isAuthenticated ? (
-            <>
+            <div className="hidden items-center gap-2 lg:flex">
               <span className="user-chip">{user?.name}</span>
               <Button size="sm" variant="outline" onClick={onLogout}>
                 Logout
               </Button>
-            </>
+            </div>
           ) : (
-            <Link to="/login">
+            <Link to="/login" className="hidden lg:block">
               <Button size="sm">Login</Button>
             </Link>
           )}
 
-          <Sheet open={open} onOpenChange={setOpen}>
-            <Button size="icon" variant="outline" onClick={() => setOpen(!open)} className="lg:hidden">
-              <MenuIcon className="size-4" />
-            </Button>
-            <SheetContent
-              className="gap-0 bg-white/95 backdrop-blur-lg"
-              showClose={false}
-              side="left"
-            >
-              <div className="grid gap-y-2 overflow-y-auto px-4 pb-5 pt-12">
+          <Button
+            size="icon"
+            variant="outline"
+            type="button"
+            aria-label="Open navigation menu"
+            onClick={() => setOpen(!open)}
+            className="inline-flex border-blue-200 text-blue-900 hover:bg-blue-50 lg:hidden"
+          >
+            <MenuIcon className="size-4" />
+          </Button>
+        </div>
+      </nav>
+
+      {mounted &&
+        open &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              aria-label="Close menu"
+              className="fixed inset-0 z-[70] bg-black/45 lg:hidden"
+              onClick={() => setOpen(false)}
+            />
+            <aside className="mobile-drawer fixed inset-y-0 left-0 z-[71] flex w-[82%] max-w-[320px] flex-col p-4 shadow-2xl lg:hidden">
+              <div className="grid gap-2 pt-2">
+                {isAuthenticated && (
+                  <div className="drawer-user rounded-lg px-3 py-2 text-sm font-semibold">
+                    Signed in as {user?.name}
+                  </div>
+                )}
                 {links.map((link) => (
                   <Link
                     key={link.label}
-                    className={buttonVariants({
-                      variant: "ghost",
-                      className: "justify-start"
-                    })}
+                    className={buttonVariants({ variant: "ghost", className: "drawer-link justify-start" })}
                     to={link.href}
                     onClick={() => setOpen(false)}
                   >
@@ -79,10 +109,11 @@ export function FloatingHeader({ isAuthenticated, user, onLogout }) {
                   </Link>
                 ))}
               </div>
-              <SheetFooter>
+              <div className="mt-auto grid gap-2 pt-6">
                 {isAuthenticated ? (
                   <Button
                     variant="outline"
+                    className="drawer-btn"
                     onClick={() => {
                       onLogout();
                       setOpen(false);
@@ -91,15 +122,20 @@ export function FloatingHeader({ isAuthenticated, user, onLogout }) {
                     Logout
                   </Button>
                 ) : (
-                  <Link to="/signup" onClick={() => setOpen(false)}>
-                    <Button>Get Started</Button>
-                  </Link>
+                  <>
+                    <Link to="/login" onClick={() => setOpen(false)}>
+                      <Button variant="outline" className="drawer-btn">Login</Button>
+                    </Link>
+                    <Link to="/signup" onClick={() => setOpen(false)}>
+                      <Button className="drawer-btn drawer-btn-primary">Get Started</Button>
+                    </Link>
+                  </>
                 )}
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </nav>
+              </div>
+            </aside>
+          </>,
+          document.body
+        )}
     </header>
   );
 }

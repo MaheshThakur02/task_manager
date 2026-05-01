@@ -102,7 +102,7 @@ export function ProjectsPage() {
               <p className="muted">{project.description || "No description"}</p>
               <p className="muted">
                 Tasks: {project.taskStats?.completed || 0}/{project.taskStats?.total || 0} completed
-                {project.taskStats?.overdue ? ` • ${project.taskStats.overdue} overdue` : ""}
+                {project.taskStats?.overdue ? ` - ${project.taskStats.overdue} overdue` : ""}
               </p>
               <Link to={`/projects/${project._id}`}>Open Project</Link>
             </article>
@@ -111,3 +111,4 @@ export function ProjectsPage() {
     </section>
   );
 }
+
